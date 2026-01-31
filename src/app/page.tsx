@@ -167,7 +167,7 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm mb-6">
               <span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />
-              Serving Citizens Since 2020
+              Serving Citizens Since 2026
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
