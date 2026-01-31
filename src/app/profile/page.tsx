@@ -43,7 +43,13 @@ interface UserProfile {
         department: {
             name: string
         }
-        jurisdiction?: string
+        ward?: {
+            number: number
+            name?: string
+            city?: {
+                name: string
+            }
+        }
         avgRating?: number
         totalRatings?: number
     }
@@ -338,7 +344,12 @@ export default function ProfilePage() {
                                             </div>
                                             <div className="p-3 bg-slate-50 rounded-lg">
                                                 <p className="text-xs text-slate-500">Jurisdiction</p>
-                                                <p className="font-medium text-slate-900">{profile.authority.jurisdiction || 'Not assigned'}</p>
+                                                <p className="font-medium text-slate-900">
+                                                    {profile.authority.ward
+                                                        ? `Ward ${profile.authority.ward.number}${profile.authority.ward.name ? ` (${profile.authority.ward.name})` : ''}, ${profile.authority.ward.city?.name || ''}`
+                                                        : 'Not assigned'
+                                                    }
+                                                </p>
                                             </div>
                                             {profile.authority.avgRating !== undefined && (
                                                 <div className="p-3 bg-yellow-50 rounded-lg md:col-span-2">

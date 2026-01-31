@@ -27,11 +27,21 @@ export async function GET() {
                         id: true,
                         designation: true,
                         level: true,
-                        jurisdiction: true,
                         department: {
                             select: {
                                 id: true,
                                 name: true
+                            }
+                        },
+                        ward: {
+                            select: {
+                                number: true,
+                                name: true,
+                                city: {
+                                    select: {
+                                        name: true
+                                    }
+                                }
                             }
                         }
                     }
@@ -109,11 +119,21 @@ export async function PUT(request: NextRequest) {
                         id: true,
                         designation: true,
                         level: true,
-                        jurisdiction: true,
                         department: {
                             select: {
                                 id: true,
                                 name: true
+                            }
+                        },
+                        ward: {
+                            select: {
+                                number: true,
+                                name: true,
+                                city: {
+                                    select: {
+                                        name: true
+                                    }
+                                }
                             }
                         }
                     }
