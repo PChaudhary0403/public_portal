@@ -12,7 +12,8 @@ import {
     User,
     ArrowRight,
     Loader2,
-    AlertCircle
+    AlertCircle,
+    Download
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -21,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getStatusColor, formatDate } from "@/lib/utils"
+import { downloadReceipt } from "@/lib/receipt-generator"
 
 interface ComplaintDetails {
     id: string
@@ -231,9 +233,31 @@ function TrackComplaintContent() {
                                                 {complaint.ticketNumber}
                                             </p>
                                         </div>
-                                        <Badge className={`${getStatusColor(complaint.status)} text-sm px-4 py-2`}>
-                                            {complaint.status.replace("_", " ")}
-                                        </Badge>
+                                        <div className="flex items-center gap-3">
+                                            <Badge className={`${getStatusColor(complaint.status)} text-sm px-4 py-2`}>
+                                                {complaint.status.replace("_", " ")}
+                                            </Badge>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="gap-2"
+                                                onClick={() => {
+                                                    downloadReceipt({
+                                                        ticketNumber: complaint.ticketNumber,
+                                                        title: complaint.title,
+                                                        description: complaint.description,
+                                                        department: complaint.department.name,
+                                                        priority: complaint.priority,
+                                                        location: `${complaint.ward ? `Ward ${complaint.ward.number}, ` : ''}${complaint.city.name}`,
+                                                        address: complaint.address || '',
+                                                        submittedAt: new Date(complaint.createdAt)
+                                                    })
+                                                }}
+                                            >
+                                                <Download className="h-4 w-4" />
+                                                Receipt
+                                            </Button>
+                                        </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent>

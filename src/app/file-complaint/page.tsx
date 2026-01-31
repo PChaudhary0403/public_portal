@@ -22,7 +22,8 @@ import {
     GraduationCap,
     Shield,
     Building2,
-    Eye
+    Eye,
+    Download
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -32,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { downloadReceipt } from "@/lib/receipt-generator"
 
 interface Department {
     id: string
@@ -66,7 +68,10 @@ function FileComplaintContent() {
     const [loading, setLoading] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState("")
-    const [success, setSuccess] = useState<{ ticketNumber: string } | null>(null)
+    const [success, setSuccess] = useState<{
+        ticketNumber: string
+        submittedAt: Date
+    } | null>(null)
 
     // Form data
     const [formData, setFormData] = useState({
@@ -251,7 +256,10 @@ function FileComplaintContent() {
             if (!response.ok) {
                 setError(data.error || "Failed to submit complaint")
             } else {
-                setSuccess({ ticketNumber: data.complaint.ticketNumber })
+                setSuccess({
+                    ticketNumber: data.complaint.ticketNumber,
+                    submittedAt: new Date()
+                })
                 setStep(5)
             }
         } catch {
@@ -691,6 +699,35 @@ function FileComplaintContent() {
                                 <p className="text-sm text-slate-500 mb-6">
                                     Save this ticket number to track your complaint status
                                 </p>
+
+                                {/* Download Receipt Button */}
+                                <div className="mb-6">
+                                    <Button
+                                        variant="outline"
+                                        className="gap-2 border-green-300 text-green-700 hover:bg-green-50"
+                                        onClick={() => {
+                                            const selectedCity = cities.find(c => c.id === formData.cityId)
+                                            const selectedWard = wards.find(w => w.id === formData.wardId)
+
+                                            downloadReceipt({
+                                                ticketNumber: success.ticketNumber,
+                                                title: formData.title,
+                                                description: formData.description,
+                                                department: selectedDepartment?.name || 'Unknown',
+                                                priority: formData.priority,
+                                                location: `${selectedWard ? `Ward ${selectedWard.number}, ` : ''}${selectedCity?.name || ''}`,
+                                                address: formData.address,
+                                                pincode: formData.pincode,
+                                                submittedAt: success.submittedAt,
+                                                citizenName: session?.user?.name || undefined,
+                                                citizenEmail: session?.user?.email || undefined
+                                            })
+                                        }}
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Download Receipt
+                                    </Button>
+                                </div>
 
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                     <Link href={`/track?ticket=${success.ticketNumber}`}>
