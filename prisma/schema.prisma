@@ -1,0 +1,394 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  emailVerified       DateTime?
+  name                String?
+  password            String?
+  phone               String?
+  role                UserRole             @default(CITIZEN)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  accounts            Account[]
+  authority           Authority?
+  complaints          Complaint[]
+  satisfactionRatings SatisfactionRating[]
+  sessions            Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Department {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  slug            String           @unique
+  description     String?
+  icon            String?
+  color           String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  authorities     Authority[]
+  complaints      Complaint[]
+  escalationRules EscalationRule[]
+
+  @@map("departments")
+}
+
+model State {
+  id                        String                    @id @default(cuid())
+  name                      String                    @unique
+  code                      String                    @unique
+  createdAt                 DateTime                  @default(now())
+  districts                 District[]
+  assemblyConstituencies    AssemblyConstituency[]
+  parliamentaryConstituencies ParliamentaryConstituency[]
+
+  @@map("states")
+}
+
+model District {
+  id        String   @id @default(cuid())
+  name      String
+  stateId   String
+  createdAt DateTime @default(now())
+  cities    City[]
+  state     State    @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@unique([name, stateId])
+  @@map("districts")
+}
+
+model City {
+  id         String      @id @default(cuid())
+  name       String
+  districtId String
+  pincode    String?
+  createdAt  DateTime    @default(now())
+  district   District    @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  complaints Complaint[]
+  wards      Ward[]
+
+  @@unique([name, districtId])
+  @@map("cities")
+}
+
+model Ward {
+  id                        String                 @id @default(cuid())
+  number                    Int
+  name                      String?
+  cityId                    String
+  assemblyConstituencyId    String?
+  parliamentaryConstituencyId String?
+  createdAt                 DateTime               @default(now())
+  authorities               Authority[]
+  complaints                Complaint[]
+  city                      City                   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  assemblyConstituency      AssemblyConstituency?  @relation(fields: [assemblyConstituencyId], references: [id])
+  parliamentaryConstituency ParliamentaryConstituency? @relation(fields: [parliamentaryConstituencyId], references: [id])
+
+  @@unique([number, cityId])
+  @@map("wards")
+}
+
+// ============================================
+// POLITICAL ACCOUNTABILITY MODELS
+// ============================================
+
+model PoliticalParty {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  shortName   String       @unique
+  symbol      String?
+  color       String?
+  logoUrl     String?
+  foundedYear Int?
+  ideology    String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  politicians Politician[]
+
+  @@map("political_parties")
+}
+
+model AssemblyConstituency {
+  id                        String       @id @default(cuid())
+  name                      String
+  constituencyNumber        Int?
+  stateId                   String
+  reservationStatus         ReservationStatus @default(GENERAL)
+  totalVoters               Int?
+  area                      String?
+  description               String?
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  state                     State        @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  wards                     Ward[]
+  complaints                Complaint[]
+  politicians               Politician[] @relation("AssemblyPoliticians")
+
+  @@unique([name, stateId])
+  @@index([stateId])
+  @@map("assembly_constituencies")
+}
+
+model ParliamentaryConstituency {
+  id                        String       @id @default(cuid())
+  name                      String
+  constituencyNumber        Int?
+  stateId                   String
+  reservationStatus         ReservationStatus @default(GENERAL)
+  totalVoters               Int?
+  area                      String?
+  description               String?
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  state                     State        @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  wards                     Ward[]
+  complaints                Complaint[]
+  politicians               Politician[] @relation("ParliamentaryPoliticians")
+
+  @@unique([name, stateId])
+  @@index([stateId])
+  @@map("parliamentary_constituencies")
+}
+
+model Politician {
+  id                        String                     @id @default(cuid())
+  name                      String
+  photoUrl                  String?
+  dateOfBirth               DateTime?
+  gender                    Gender?
+  education                 String?
+  occupation                String?
+  partyId                   String
+  seatType                  SeatType
+  assemblyConstituencyId    String?
+  parliamentaryConstituencyId String?
+  termStartDate             DateTime
+  termEndDate               DateTime?
+  isCurrentlyServing        Boolean                    @default(true)
+  contactEmail              String?
+  contactPhone              String?
+  socialMediaLinks          Json?
+  biography                 String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  party                     PoliticalParty             @relation(fields: [partyId], references: [id])
+  assemblyConstituency      AssemblyConstituency?      @relation("AssemblyPoliticians", fields: [assemblyConstituencyId], references: [id])
+  parliamentaryConstituency ParliamentaryConstituency? @relation("ParliamentaryPoliticians", fields: [parliamentaryConstituencyId], references: [id])
+
+  @@index([partyId])
+  @@index([seatType])
+  @@index([assemblyConstituencyId])
+  @@index([parliamentaryConstituencyId])
+  @@map("politicians")
+}
+
+model Authority {
+  id                  String               @id @default(cuid())
+  userId              String               @unique
+  departmentId        String
+  designation         String
+  level               Int                  @default(1)
+  wardId              String?
+  cityId              String?
+  districtId          String?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  avgResponseTime     Float?               @default(0)
+  resolutionRate      Float?               @default(0)
+  totalComplaints     Int                  @default(0)
+  resolvedComplaints  Int                  @default(0)
+  pendingComplaints   Int                  @default(0)
+  performanceScore    Float?               @default(0)
+  department          Department           @relation(fields: [departmentId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ward                Ward?                @relation(fields: [wardId], references: [id])
+  statusLogs          ComplaintStatusLog[]
+  assignedComplaints  Complaint[]          @relation("AssignedAuthority")
+  satisfactionRatings SatisfactionRating[]
+
+  @@map("authorities")
+}
+
+model Complaint {
+  id                        String                     @id @default(cuid())
+  ticketNumber              String                     @unique
+  title                     String
+  description               String
+  status                    ComplaintStatus            @default(SUBMITTED)
+  priority                  Priority                   @default(MEDIUM)
+  cityId                    String
+  wardId                    String?
+  address                   String?
+  pincode                   String?
+  latitude                  Float?
+  longitude                 Float?
+  departmentId              String
+  citizenId                 String
+  assignedAuthorityId       String?
+  assemblyConstituencyId    String?
+  parliamentaryConstituencyId String?
+  currentEscalationLevel    Int                        @default(1)
+  evidenceUrls              String[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  viewedAt                  DateTime?
+  resolvedAt                DateTime?
+  closedAt                  DateTime?
+  escalationDueAt           DateTime?
+  statusLogs                ComplaintStatusLog[]
+  assignedAuthority         Authority?                 @relation("AssignedAuthority", fields: [assignedAuthorityId], references: [id])
+  citizen                   User                       @relation(fields: [citizenId], references: [id])
+  city                      City                       @relation(fields: [cityId], references: [id])
+  department                Department                 @relation(fields: [departmentId], references: [id])
+  ward                      Ward?                      @relation(fields: [wardId], references: [id])
+  assemblyConstituency      AssemblyConstituency?      @relation(fields: [assemblyConstituencyId], references: [id])
+  parliamentaryConstituency ParliamentaryConstituency? @relation(fields: [parliamentaryConstituencyId], references: [id])
+  satisfactionRating        SatisfactionRating?
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([citizenId])
+  @@index([assignedAuthorityId])
+  @@index([assemblyConstituencyId])
+  @@index([parliamentaryConstituencyId])
+  @@map("complaints")
+}
+
+model ComplaintStatusLog {
+  id          String          @id @default(cuid())
+  complaintId String
+  status      ComplaintStatus
+  notes       String?
+  authorityId String?
+  createdAt   DateTime        @default(now())
+  authority   Authority?      @relation(fields: [authorityId], references: [id])
+  complaint   Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@map("complaint_status_logs")
+}
+
+model EscalationRule {
+  id             String     @id @default(cuid())
+  departmentId   String
+  fromLevel      Int
+  toLevel        Int
+  daysToEscalate Int        @default(7)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  department     Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, fromLevel, toLevel])
+  @@map("escalation_rules")
+}
+
+model SatisfactionRating {
+  id          String    @id @default(cuid())
+  complaintId String    @unique
+  citizenId   String
+  authorityId String
+  rating      Int
+  feedback    String?
+  createdAt   DateTime  @default(now())
+  authority   Authority @relation(fields: [authorityId], references: [id])
+  citizen     User      @relation(fields: [citizenId], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@map("satisfaction_ratings")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  CITIZEN
+  AUTHORITY
+  ADMIN
+}
+
+enum ComplaintStatus {
+  SUBMITTED
+  VIEWED
+  IN_PROGRESS
+  RESOLVED
+  ESCALATED
+  CLOSED
+  REJECTED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SeatType {
+  MLA
+  MP
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ReservationStatus {
+  GENERAL
+  SC
+  ST
+  OBC
+}
